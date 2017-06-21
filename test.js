@@ -1,4 +1,4 @@
-const htmlSelector = require('./index_es5.js');
+const htmlSelector = require('./index.js');
 
 htmlSelector({
     name: 'Google',

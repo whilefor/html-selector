@@ -1,6 +1,6 @@
 {
   "name": "html-selector",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Get website data using chrome headless mode",
   "main": "index_es5.js",
   "scripts": {

@@ -132,6 +132,7 @@ function getNodeInnerHTML(node, config = {}){
 	let children   = config['children'];
 
 	let html = '';
+
 	if(attribute && childNodes === undefined && children === undefined){
 		if(node.getAttribute){
 			html = node.getAttribute(attribute);
@@ -145,7 +146,9 @@ function getNodeInnerHTML(node, config = {}){
 			node = node.children[children];
 		}
 
-		if(attribute && node.getAttribute){
+		if(!node){
+			html = "";
+		} else if(attribute && node.getAttribute){
 			html = node.getAttribute(attribute);
 		} else if(node.innerHTML){
 			html = node.innerHTML;
