@@ -1,7 +1,7 @@
 {
   "name": "html-selector",
-  "version": "0.0.1",
-  "description": "Get data using DOM Selectors through chrome headless mode",
+  "version": "0.0.2",
+  "description": "Get website data using chrome headless mode",
   "main": "index_es5.js",
   "scripts": {
     "build": "babel index.js --out-file index_es5.js",
