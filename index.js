@@ -1,3 +1,4 @@
+require('babel-polyfill');
 const _      = require('lodash');
 const jsdom  = require("jsdom");
 const { JSDOM } = jsdom;
