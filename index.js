@@ -20,17 +20,15 @@ const defaultConfig = {
 	// timeout of loading page
 	timeout: 10000,
 
-	// root selector for the data
+	// root selector for the result array
 	rootSelector: 'body',
 
 	// count of the rootSelector
 	limit: 3,
 
-	// observer selector for wait the htm node appears after loadEventFired
-	observerSelector: 'body',
-
-	// observer selector timeout
-	observerSelectorTimeout: 10000
+	// wait node appears after loadEventFired
+	waitAppearsNode: 'body',
+	waitAppearsNodeTimeout: 10000,
 }
 
 function getData(config, options = {}) {
@@ -39,15 +37,20 @@ function getData(config, options = {}) {
 
 		let { url,
 			name,
+			timeout,
+			rootSelector,
 			limit,
 			data,
-			rootSelector,
-			observerSelector, 
-			timeout,
-			observerSelectorTimeout } = config;
-		let datas = [];
+			waitAppearsNode, 
+			waitAppearsNodeTimeout } = config;
 
-		data = data ? data : {}
+		if( !url || !name ){
+			reject('url and name required');
+			return;
+		}
+
+		let datas = [];
+		data = data ? data : {};
 
 		try{
 			// create a new tab through chrome headless mode.
@@ -71,18 +74,19 @@ function getData(config, options = {}) {
 		    clearTimeout(loadTimer);
 
 		    // Wait for the specific element appears
-			let waitNodeAppearsResult = await waitNodeAppears(client, rootSelector, {observerSelector: observerSelector, timeout: observerSelectorTimeout});
+			let waitNodeAppearsResult = await waitNodeAppears(client, {observerSelector: waitAppearsNode, timeout: waitAppearsNodeTimeout});
 			if(waitNodeAppearsResult == 0){
-				reject('rootSelector not valid or DOM not found');
+				reject('waitAppearsNode not valid or DOM not appears');
 				return;
 			}
 
-			// get the html for analysis
-			let html = await getPageHtml(client, observerSelector);
+			// get the body html for analysis
+			let html = await getPageHtml(client, 'body');
 			if(!html){
 				reject('get page html error');
 				return;
 			}
+
 			// get the data from dom
 			const dom = new JSDOM(html);
 			let sections = [...dom.window.document.querySelectorAll(rootSelector)].slice(0, limit);
@@ -93,15 +97,17 @@ function getData(config, options = {}) {
 					let selector   = v['selector'];
 
 					let nodes = section.querySelectorAll(selector);
+					// console.log('selector: ', selector);
+					// console.log('nodes: ', nodes);
 					if(!selector || !nodes || !nodes.length){
 						datas[i][k] = null;
 					} else {
 						if(nodes.length == 1){
-							datas[i][k] = getNodeInnerHTML(nodes[0], v);
+							datas[i][k] = getNodeData(nodes[0], v);
 						} else {
 							datas[i][k] = [];
 							_.forEach(nodes, (node)=>{
-								let html = getNodeInnerHTML(node, v);
+								let html = getNodeData(node, v);
 								datas[i][k].push(html);
 							})
 						}
@@ -126,46 +132,63 @@ function getData(config, options = {}) {
 }
 
 
-function getNodeInnerHTML(node, config = {}){
-	let attribute  = config['attribute'];
-	let childNodes = config['childNodes'];
-	let children   = config['children'];
-
-	let html = '';
-
-	if(attribute && childNodes === undefined && children === undefined){
-		if(node.getAttribute){
-			html = node.getAttribute(attribute);
-		}
-	} else if((childNodes && _.isNumber(childNodes)) || 
-				(children && _.isNumber(children))){
-
-		if(childNodes){
-			node = node.childNodes[childNodes];
-		} else {
-			node = node.children[children];
-		}
-
-		if(!node){
-			html = "";
-		} else if(attribute && node.getAttribute){
-			html = node.getAttribute(attribute);
-		} else if(node.innerHTML){
-			html = node.innerHTML;
-		} else if(node.nodeValue){
-			html = node.nodeValue;
-		} else {
-			html = "";
-		}
-	} else {
-		html = node.innerHTML;
+function getNodeData(node, config = {}){
+	if(!_.isElement(node)){
+		return;
 	}
 
-	if(html){
-		html = html.replace(/(^\s*)|(\s*$)/g, "");
+	let attribute       = config['attribute'];
+	let childNodesIndex = config['childNodes'];
+	let childrenIndex   = config['children'];
+
+	let data = '';
+	if(_.isNumber(childNodesIndex)){
+		node = getNodeChildNode(node, childNodesIndex);
+	} else if(_.isNumber(childrenIndex)){
+		node = getNodeChild(node, childrenIndex);
 	}
 
-	return html;
+	if(!node) {
+		return data;
+	}
+
+	if(attribute){
+		data = getNodeAttribute(node, attribute);
+	} else if(node.innerHTML){
+		data = node.innerHTML;
+	} else if(node.nodeValue){
+		data = node.nodeValue;
+	}
+
+	if(data){
+		data = data.replace(/(^\s*)|(\s*$)/g, "");
+	}
+
+	return data;
+}
+
+function getNodeAttribute(node, attribute = ''){
+	if(!_.isElement(node) || !node.getAttribute){
+		return;
+	}
+
+	return node.getAttribute(attribute);
+}
+
+function getNodeChildNode(node, index = -1){
+	if(!_.isElement(node) || !node.childNodes){
+		return;
+	}
+
+	return node.childNodes[index];
+}
+
+function getNodeChild(node, index = -1){
+	if(!_.isElement(node) || !node.children){
+		return;
+	}
+
+	return node.children[index];
 }
 
 module.exports = getData

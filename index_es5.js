@@ -27,17 +27,15 @@ var defaultConfig = {
 	// timeout of loading page
 	timeout: 10000,
 
-	// root selector for the data
+	// root selector for the result array
 	rootSelector: 'body',
 
 	// count of the rootSelector
 	limit: 3,
 
-	// observer selector for wait the htm node appears after loadEventFired
-	observerSelector: 'body',
-
-	// observer selector timeout
-	observerSelectorTimeout: 10000
+	// wait node appears after loadEventFired
+	waitAppearsNode: 'body',
+	waitAppearsNodeTimeout: 10000
 };
 
 function getData(config) {
@@ -47,7 +45,7 @@ function getData(config) {
 
 	return new Promise(function () {
 		var _ref = _asyncToGenerator(regeneratorRuntime.mark(function _callee2(resolve, reject) {
-			var _config, url, name, limit, data, rootSelector, observerSelector, timeout, observerSelectorTimeout, datas, tab, client, target, Page, DOM, loadTimer, waitNodeAppearsResult, html, dom, sections, _loop, i, item;
+			var _config, url, name, timeout, rootSelector, limit, data, waitAppearsNode, waitAppearsNodeTimeout, datas, tab, client, target, Page, DOM, loadTimer, waitNodeAppearsResult, html, dom, sections, _loop, i, item;
 
 			return regeneratorRuntime.wrap(function _callee2$(_context2) {
 				while (1) {
@@ -55,17 +53,26 @@ function getData(config) {
 						case 0:
 							config = _.extend(defaultConfig, config);
 
-							_config = config, url = _config.url, name = _config.name, limit = _config.limit, data = _config.data, rootSelector = _config.rootSelector, observerSelector = _config.observerSelector, timeout = _config.timeout, observerSelectorTimeout = _config.observerSelectorTimeout;
-							datas = [];
+							_config = config, url = _config.url, name = _config.name, timeout = _config.timeout, rootSelector = _config.rootSelector, limit = _config.limit, data = _config.data, waitAppearsNode = _config.waitAppearsNode, waitAppearsNodeTimeout = _config.waitAppearsNodeTimeout;
 
+							if (!(!url || !name)) {
+								_context2.next = 5;
+								break;
+							}
+
+							reject('url and name required');
+							return _context2.abrupt('return');
+
+						case 5:
+							datas = [];
 
 							data = data ? data : {};
 
-							_context2.prev = 4;
-							_context2.next = 7;
+							_context2.prev = 7;
+							_context2.next = 10;
 							return creatNewTab(options);
 
-						case 7:
+						case 10:
 							tab = _context2.sent;
 							client = tab.client, target = tab.target;
 							Page = client.Page, DOM = client.DOM;
@@ -95,55 +102,56 @@ function getData(config) {
 									}
 								}, _callee, _this);
 							})), timeout);
-							_context2.next = 13;
+							_context2.next = 16;
 							return Page.enable();
 
-						case 13:
-							_context2.next = 15;
+						case 16:
+							_context2.next = 18;
 							return DOM.enable();
 
-						case 15:
-							_context2.next = 17;
+						case 18:
+							_context2.next = 20;
 							return Page.navigate({ url: url });
 
-						case 17:
-							_context2.next = 19;
+						case 20:
+							_context2.next = 22;
 							return Page.loadEventFired();
 
-						case 19:
+						case 22:
 							clearTimeout(loadTimer);
 
 							// Wait for the specific element appears
-							_context2.next = 22;
-							return waitNodeAppears(client, rootSelector, { observerSelector: observerSelector, timeout: observerSelectorTimeout });
+							_context2.next = 25;
+							return waitNodeAppears(client, { observerSelector: waitAppearsNode, timeout: waitAppearsNodeTimeout });
 
-						case 22:
+						case 25:
 							waitNodeAppearsResult = _context2.sent;
 
 							if (!(waitNodeAppearsResult == 0)) {
-								_context2.next = 26;
+								_context2.next = 29;
 								break;
 							}
 
-							reject('rootSelector not valid or DOM not found');
+							reject('waitAppearsNode not valid or DOM not appears');
 							return _context2.abrupt('return');
 
-						case 26:
-							_context2.next = 28;
-							return getPageHtml(client, observerSelector);
+						case 29:
+							_context2.next = 31;
+							return getPageHtml(client, 'body');
 
-						case 28:
+						case 31:
 							html = _context2.sent;
 
 							if (html) {
-								_context2.next = 32;
+								_context2.next = 35;
 								break;
 							}
 
 							reject('get page html error');
 							return _context2.abrupt('return');
 
-						case 32:
+						case 35:
+
 							// get the data from dom
 							dom = new JSDOM(html);
 							sections = [].concat(_toConsumableArray(dom.window.document.querySelectorAll(rootSelector))).slice(0, limit);
@@ -155,15 +163,17 @@ function getData(config) {
 									var selector = v['selector'];
 
 									var nodes = section.querySelectorAll(selector);
+									// console.log('selector: ', selector);
+									// console.log('nodes: ', nodes);
 									if (!selector || !nodes || !nodes.length) {
 										datas[i][k] = null;
 									} else {
 										if (nodes.length == 1) {
-											datas[i][k] = getNodeInnerHTML(nodes[0], v);
+											datas[i][k] = getNodeData(nodes[0], v);
 										} else {
 											datas[i][k] = [];
 											_.forEach(nodes, function (node) {
-												var html = getNodeInnerHTML(node, v);
+												var html = getNodeData(node, v);
 												datas[i][k].push(html);
 											});
 										}
@@ -174,25 +184,25 @@ function getData(config) {
 							for (i = 0; i < sections.length; i++) {
 								_loop(i);
 							}
-							_context2.next = 38;
+							_context2.next = 41;
 							return closeTab(target);
 
-						case 38:
-							_context2.next = 40;
+						case 41:
+							_context2.next = 43;
 							return client.close();
 
-						case 40:
-							_context2.next = 46;
+						case 43:
+							_context2.next = 49;
 							break;
 
-						case 42:
-							_context2.prev = 42;
-							_context2.t0 = _context2['catch'](4);
+						case 45:
+							_context2.prev = 45;
+							_context2.t0 = _context2['catch'](7);
 
 							console.log(_context2.t0);
 							reject(_context2.t0);
 
-						case 46:
+						case 49:
 							item = {
 								url: url,
 								name: name,
@@ -201,12 +211,12 @@ function getData(config) {
 
 							resolve(item);
 
-						case 48:
+						case 51:
 						case 'end':
 							return _context2.stop();
 					}
 				}
-			}, _callee2, _this, [[4, 42]]);
+			}, _callee2, _this, [[7, 45]]);
 		}));
 
 		return function (_x2, _x3) {
@@ -215,47 +225,71 @@ function getData(config) {
 	}());
 }
 
-function getNodeInnerHTML(node) {
+function getNodeData(node) {
 	var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
+	if (!_.isElement(node)) {
+		return;
+	}
+
 	var attribute = config['attribute'];
-	var childNodes = config['childNodes'];
-	var children = config['children'];
+	var childNodesIndex = config['childNodes'];
+	var childrenIndex = config['children'];
 
-	var html = '';
-
-	if (attribute && childNodes === undefined && children === undefined) {
-		if (node.getAttribute) {
-			html = node.getAttribute(attribute);
-		}
-	} else if (childNodes && _.isNumber(childNodes) || children && _.isNumber(children)) {
-
-		if (childNodes) {
-			node = node.childNodes[childNodes];
-		} else {
-			node = node.children[children];
-		}
-
-		if (!node) {
-			html = "";
-		} else if (attribute && node.getAttribute) {
-			html = node.getAttribute(attribute);
-		} else if (node.innerHTML) {
-			html = node.innerHTML;
-		} else if (node.nodeValue) {
-			html = node.nodeValue;
-		} else {
-			html = "";
-		}
-	} else {
-		html = node.innerHTML;
+	var data = '';
+	if (_.isNumber(childNodesIndex)) {
+		node = getNodeChildNode(node, childNodesIndex);
+	} else if (_.isNumber(childrenIndex)) {
+		node = getNodeChild(node, childrenIndex);
 	}
 
-	if (html) {
-		html = html.replace(/(^\s*)|(\s*$)/g, "");
+	if (!node) {
+		return data;
 	}
 
-	return html;
+	if (attribute) {
+		data = getNodeAttribute(node, attribute);
+	} else if (node.innerHTML) {
+		data = node.innerHTML;
+	} else if (node.nodeValue) {
+		data = node.nodeValue;
+	}
+
+	if (data) {
+		data = data.replace(/(^\s*)|(\s*$)/g, "");
+	}
+
+	return data;
+}
+
+function getNodeAttribute(node) {
+	var attribute = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
+
+	if (!_.isElement(node) || !node.getAttribute) {
+		return;
+	}
+
+	return node.getAttribute(attribute);
+}
+
+function getNodeChildNode(node) {
+	var index = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : -1;
+
+	if (!_.isElement(node) || !node.childNodes) {
+		return;
+	}
+
+	return node.childNodes[index];
+}
+
+function getNodeChild(node) {
+	var index = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : -1;
+
+	if (!_.isElement(node) || !node.children) {
+		return;
+	}
+
+	return node.children[index];
 }
 
 module.exports = getData;

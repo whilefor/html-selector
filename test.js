@@ -3,18 +3,34 @@ const htmlSelector = require('./index.js');
 htmlSelector({
     name: 'Google',
     url: 'https://www.google.com',
-    rootSelector: '.tsf-p',
+    waitAppearsNode: ['#fsl'],
     data: {
         inputValues: { 
-            selector: 'center input',
+            selector: '.tsf-p center input',
             attribute: 'value'
         },
         logocont: {
-            selector: '#logocont'
+            selector: '.tsf-p #logocont'
+        },
+        fsl: {
+            selector: '#fsl a'
+        },
+        fsl1: {
+            selector: '#fsl',
+            children: 0
+        },
+        fsl2: {
+            selector: '#fsl',
+            children: 1
+        },
+        fsl3_class: {
+            selector: '#fsl',
+            children: 2,
+            attribute: 'class'
         }
     }
 }).then((res)=>{
-    console.log(res.data);
+    console.log(res);
 }).catch((err)=>{
     console.log(err);
 });

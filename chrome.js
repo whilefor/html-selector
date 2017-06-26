@@ -34,58 +34,55 @@ async function getPageHtml(client, selector = 'body'){
 }
 
 // wait node appears, return 0 for time out(not found), return 1 for appeared.
-async function waitNodeAppears(client, selector, {observerSelector = 'body', timeout = 10000} = {}) {
+async function waitNodeAppears(client, {observerSelector = 'body', timeout = 10000} = {}) {
 	if(!_.isNumber(timeout)){
-		throw new Error('timeout not valid, require number') 
+        timeout = 10000;
 	}
 
     // browser code to register and parse mutations
-    const browserCode = (selector, observerSelector, timeout) => {
+    const browserCode = (observerSelector, timeout) => {
         return new Promise((resolve, reject) => {
-        	if(document.querySelector(selector)){
+            function isArray(o) {    
+                return Object.prototype.toString.call(o) === '[object Array]';     
+            }
+            function isString(o) {    
+                return Object.prototype.toString.call(o) === '[object String]';     
+            }
+            function isFindAll(observerSelector) {
+                if(isArray(observerSelector)){
+                    let resolves = observerSelector.map((x)=>{
+                        return document.querySelector(x);
+                    });
+                    if(resolves.find((r)=>{return !r}) === undefined){
+                        return true;
+                    }
+                } else if(isString(observerSelector)){
+                    if(document.querySelector(observerSelector)){
+                        return true;
+                    }
+                }
+            }
+
+        	if(isFindAll(observerSelector)){
         		resolve(1);
         		return;
         	}
 
-            let observerSelectorTimer;
-            if(window.MutationObserver && typeof window.MutationObserver === 'function'){
-                // https://developer.mozilla.org/zh-CN/docs/Web/API/MutationObserver
-                let observer = new MutationObserver((mutations, observer) => {
-                    const nodes = [];
-                    mutations.forEach((mutation) => {
-                        nodes.push(...mutation.addedNodes);
-                    });
-
-                    if (nodes.find((node) => node.matches(selector))) {
-                        observer.disconnect();
-                        resolve(1);
-                    }
-
-                    for(let i = 0; i < nodes.length; i++){
-                        if(nodes[i] && nodes[i].querySelector && nodes[i].querySelector(selector)){
-                            observer.disconnect();
-                            resolve(1);
-                            break;
-                        }
-                    }
-                })
-
-                observer.observe(document.querySelector(observerSelector), {
-                    childList: true
-                });
-            } else {
-                observerSelectorTimer = setInterval(()=>{
-                    if(document.querySelector(selector)){
-                        clearInterval(observerSelectorTimer);
-                        resolve(1);
-                    }
-                }, 500);
+            if(timeout <= 0){
+                resolve(0);
+                return;
             }
+
+            let observerSelectorTimer = setInterval(()=>{
+                if(isFindAll(observerSelector)){
+                    clearInterval(observerSelectorTimer);
+                    resolve(1);
+                }
+            }, 500);
 
             // wait node appears timeout
 	        setTimeout(function() {
                 clearInterval(observerSelectorTimer)
-	        	observer.disconnect();
 	            resolve(0);
 	        }, timeout);
         });
@@ -94,7 +91,7 @@ async function waitNodeAppears(client, selector, {observerSelector = 'body', tim
     // inject the browser code
     const {Runtime} = client;
     let RuntimeResult = await Runtime.evaluate({
-        expression: `(${browserCode})(${JSON.stringify(selector)}, ${JSON.stringify(observerSelector)}, ${JSON.stringify(timeout)})`,
+        expression: `(${browserCode})(${JSON.stringify(observerSelector)}, ${JSON.stringify(timeout)})`,
         awaitPromise: true
     });
 
