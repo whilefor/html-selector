@@ -4,6 +4,7 @@ htmlSelector({
     name: 'Google',
     url: 'https://www.google.com',
     waitAppearsNode: ['#fsl'],
+    // fireType: 'domContentEventFired',
     data: {
         inputValues: { 
             selector: '.tsf-p center input',

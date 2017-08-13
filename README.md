@@ -93,6 +93,7 @@ Since version 59, additionally use the `--headless` option, for example:
 * `name` : name
 * `url` : url
 * `timeout` : timeout of loading page. Defaults to `10000` (ms)
+* `fireType` : page fired type. 'domContentEventFired' or 'loadEventFired'. Defaults to `loadEventFired'。
 * `rootSelector` : root selector for the data. Defaults to `body`
 * `limit` : count for the root selector. Defaults to `3`
 * `data` : object, every element data struct of the rootSelector.

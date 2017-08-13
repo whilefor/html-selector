@@ -20,6 +20,8 @@ const defaultConfig = {
 	// timeout of loading page
 	timeout: 10000,
 
+	fireType: 'loadEventFired',
+
 	// root selector for the result array
 	rootSelector: 'body',
 
@@ -38,6 +40,7 @@ function getData(config, options = {}) {
 		let { url,
 			name,
 			timeout,
+			fireType,
 			rootSelector,
 			limit,
 			data,
@@ -70,7 +73,15 @@ function getData(config, options = {}) {
 		    await DOM.enable();
 		    await Page.navigate({url: url});
 		    // console.log(`Page navigate to ${url}`);
-		    await Page.loadEventFired();
+
+		    if(fireType === 'loadEventFired'){
+		    	await Page.loadEventFired();
+		    } else if(fireType === 'domContentEventFired'){
+		    	await Page.domContentEventFired();
+		    } else {
+		    	await Page.loadEventFired();
+		    }
+
 		    clearTimeout(loadTimer);
 
 		    // Wait for the specific element appears
