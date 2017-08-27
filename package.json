@@ -18,10 +18,11 @@
   },
   "homepage": "https://github.com/whilefor/html-selector#readme",
   "dependencies": {
+    "babel-polyfill": "^6.23.0",
     "chrome-remote-interface": "^0.22.0",
     "jsdom": "^11.0.0",
-    "babel-polyfill": "^6.23.0",
-    "lodash": "^4.17.4"
+    "lodash": "^4.17.4",
+    "puppeteer": "^0.10.1"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",

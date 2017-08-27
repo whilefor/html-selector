@@ -59,30 +59,6 @@ npm install html-selector
            fsl3_class: '_Gs' } ] }
 ```
 
-## Setup
-
-An instance of either Chrome itself or another implementation needs to be
-running on a known port in order to use this module (defaults to
-`localhost:9222`).
-
-### Chrome/Chromium
-
-#### Desktop
-
-Start Chrome with the `--remote-debugging-port` option, for example:
-
-```
-    google-chrome --remote-debugging-port=9222
-```
-
-##### Headless
-
-Since version 59, additionally use the `--headless` option, for example:
-
-```
-    google-chrome --headless --remote-debugging-port=9222
-```
-
 
 ## API
 
