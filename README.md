@@ -1,6 +1,6 @@
 # html-selector
 
-Get website data using chrome headless mode
+Get website data using chrome headless
 
 ## Installation
 
