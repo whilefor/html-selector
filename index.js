@@ -1,14 +1,9 @@
 require('babel-polyfill');
+const puppeteer = require('puppeteer');
+
 const _      = require('lodash');
 const jsdom  = require("jsdom");
 const { JSDOM } = jsdom;
-
-const chrome = require('./chrome.js');
-const creatNewTab     = chrome.creatNewTab;
-const getPageHtml     = chrome.getPageHtml;
-const waitNodeAppears = chrome.waitNodeAppears;
-const closeAllTab     = chrome.closeAllTab;
-const closeTab        = chrome.closeTab;
 
 const defaultConfig = {
 	// name of the config
@@ -17,18 +12,18 @@ const defaultConfig = {
 	// site url
 	url: '',
 
-	// timeout of loading page
-	timeout: 10000,
+	// options of page.goto
+	timeout: 30000,           // Maximum navigation time in milliseconds
+	waitUntil: 'load',        // load or networkidle
+	networkIdleTimeout: 1000, // only with waitUntil: 'networkidle' parameter
 
-	fireType: 'loadEventFired',
+	// selector
+	selector: 'body',
 
-	// root selector for the result array
-	rootSelector: 'body',
-
-	// count of the rootSelector
+	// limit of selector items
 	limit: 3,
 
-	// wait node appears after loadEventFired
+	// wait node appears after page load
 	waitAppearsNode: 'body',
 	waitAppearsNodeTimeout: 10000,
 }
@@ -40,10 +35,11 @@ function getData(config, options = {}) {
 		let { url,
 			name,
 			timeout,
-			fireType,
-			rootSelector,
+			waitUntil,
+			networkIdleTimeout,
+			selector,
 			limit,
-			data,
+			data = {},
 			waitAppearsNode, 
 			waitAppearsNodeTimeout } = config;
 
@@ -53,80 +49,58 @@ function getData(config, options = {}) {
 		}
 
 		let datas = [];
-		data = data ? data : {};
 
-		try{
-			// create a new tab through chrome headless mode.
-			let tab = await creatNewTab(options);
-			let { client, target } = tab;
-			const { Page, DOM } = client;
+		try {
+			const browser = await puppeteer.launch({headless: false});
+			const page    = await browser.newPage();
 
-			// loading timeout
-			let loadTimer = setTimeout(async ()=>{
-				await closeTab(target);
-		    	await client.close();
-		    	reject(`loading page timeout after ${timeout}ms`);
-		    	return;
-			}, timeout);
+			await page.goto(url, {
+				timeout,
+				waitUntil,
+				networkIdleTimeout
+			});
 
-		    await Page.enable();
-		    await DOM.enable();
-		    await Page.navigate({url: url});
-		    // console.log(`Page navigate to ${url}`);
-
-		    if(fireType === 'loadEventFired'){
-		    	await Page.loadEventFired();
-		    } else if(fireType === 'domContentEventFired'){
-		    	await Page.domContentEventFired();
-		    } else {
-		    	await Page.loadEventFired();
-		    }
-
-		    clearTimeout(loadTimer);
+		    console.log(`page goto: ${url}`);
 
 		    // Wait for the specific element appears
-			let waitNodeAppearsResult = await waitNodeAppears(client, {observerSelector: waitAppearsNode, timeout: waitAppearsNodeTimeout});
-			if(waitNodeAppearsResult == 0){
-				reject('waitAppearsNode not valid or DOM not appears');
-				return;
-			}
+		    await page.waitForSelector(waitAppearsNode, {
+		    	timeout: waitAppearsNodeTimeout
+		    });
 
 			// get the body html for analysis
-			let html = await getPageHtml(client, 'body');
-			if(!html){
-				reject('get page html error');
-				return;
-			}
+			let html = await page.evaluate(() => {
+				return '<body>' + document.querySelector('body').innerHTML + '</body>';
+			});
 
-			// get the data from dom
+			// generate data from html
 			const dom = new JSDOM(html);
-			let sections = [...dom.window.document.querySelectorAll(rootSelector)].slice(0, limit);
-			for(let i = 0; i < sections.length; i++){
-				let section = sections[i];
+			let sections = [...dom.window.document.querySelectorAll(selector)].slice(0, limit);
+			sections.forEach((section, i)=>{
 				datas[i] = {};
 				_.forEach(data, (v, k)=>{
-					let selector   = v['selector'];
-
+					let selector = v['selector'];
 					let nodes = section.querySelectorAll(selector);
-					// console.log('selector: ', selector);
-					// console.log('nodes: ', nodes);
+
 					if(!selector || !nodes || !nodes.length){
 						datas[i][k] = null;
+						return;
+					}
+
+					if(nodes.length == 1){
+						datas[i][k] = getNodeData(nodes[0], v);
 					} else {
-						if(nodes.length == 1){
-							datas[i][k] = getNodeData(nodes[0], v);
-						} else {
-							datas[i][k] = [];
-							_.forEach(nodes, (node)=>{
-								let html = getNodeData(node, v);
-								datas[i][k].push(html);
-							})
-						}
+						datas[i][k] = [];
+						_.forEach(nodes, (node)=>{
+							let html = getNodeData(node, v);
+							datas[i][k].push(html);
+						})
 					}
 				})
-			}
-			await closeTab(target);
-		    await client.close();
+
+			})
+
+			await page.close();
+			await browser.close()
 
 		} catch(error){
 			console.log(error);
@@ -134,14 +108,13 @@ function getData(config, options = {}) {
 		}
 
 		let item = {
-			url    : url,
-			name   : name,
-			data  : datas
+			url  : url,
+			name : name,
+			data : datas
 		};
 		resolve(item);
 	})
 }
-
 
 function getNodeData(node, config = {}){
 	if(!_.isElement(node)){

@@ -62,16 +62,19 @@ npm install html-selector
 
 ## API
 
-### htmlSelector(config, [options])
+### htmlSelector(config)
 
 `config` is an object of site info.
 
 * `name` : name
 * `url` : url
-* `timeout` : timeout of loading page. Defaults to `10000` (ms)
-* `fireType` : page fired type. 'domContentEventFired' or 'loadEventFired'. Defaults to `loadEventFired'。
-* `rootSelector` : root selector for the data. Defaults to `body`
-* `limit` : count for the root selector. Defaults to `3`
+* `timeout` : Maximum navigation time in milliseconds, defaults to 300000 ms.
+* `waitUntil`: When to consider navigation succeeded, defaults to load. Could be either:
+    - load - consider navigation to be finished when the load event is fired.
+    - networkidle - consider navigation to be finished when the network activity stays "idle" for at least networkIdleTimeout ms.
+* `networkIdleTimeout`: A timeout to wait before completing navigation. Takes effect only with waitUntil: 'networkidle' parameter. Defaults to 1000 ms.
+* `selector` : selector for the data. Defaults to `body`
+* `limit` : limit of selector items. Defaults to `3`
 * `data` : object, every element data struct of the rootSelector.
     - `selector` :the selector for get the node(default to get innerHTML of the node)
     - `attribute` : get attribute value of the node
@@ -80,12 +83,7 @@ npm install html-selector
 * `waitAppearsNode` : string or array, wait node appears after loadEventFired. Defaults to `body`
 * `waitAppearsNodeTimeout` : wait node appears timeout. Defaults to `10000` (ms)
 
-`options` is an object of [chrome-remote-interface](https://github.com/cyrus-and/chrome-remote-interface#cdpoptions-callback)
-
-a `Promise` object is returned when done.
-
-* `data` : result data, an array
-
+* returns: a `Promise` object is returned when done.
 
 
 
